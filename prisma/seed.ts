@@ -117,6 +117,10 @@ async function clearData() {
 }
 
 async function main() {
+  // Seed-i fshin gjithçka dhe krijon llogari me fjalëkalim publik, prandaj nuk lejohet në prodhim.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Seed-i me të dhëna demo nuk ekzekutohet kur NODE_ENV=production.");
+  }
   await clearData();
 
   const building = await db.building.create({

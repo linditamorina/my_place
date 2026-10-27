@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { Building, ShieldCheck, Wallet } from "lucide-react";
 import { SubmitButton } from "@/components/client";
 import { Logo, LogoMark } from "@/components/logo";
 import { btn } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
+import { isDemoMode } from "@/lib/env";
 import { demoLogin } from "./actions";
 import { LoginForm } from "./login-form";
 
@@ -18,7 +20,6 @@ const FEATURES = [
 ];
 
 export default function LoginPage() {
-  const demo = process.env.DEMO_MODE === "1";
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
       <Suspense fallback={null}>
@@ -45,7 +46,9 @@ export default function LoginPage() {
             ))}
           </ul>
         </div>
-        <span className="text-sm text-white/70">Projekt demonstrues · të dhënat janë fiktive</span>
+        <Suspense fallback={<span />}>
+          <DemoNote />
+        </Suspense>
       </aside>
 
       <main className="flex flex-1 items-center justify-center px-5 py-12">
@@ -60,22 +63,40 @@ export default function LoginPage() {
           <div className="rounded-3xl bg-white p-6">
             <LoginForm />
           </div>
-          {demo ? (
-            <div className="flex flex-col gap-3">
-              <p className="text-center text-sm font-semibold text-muted">Ose provo demon pa llogari</p>
-              <form action={demoLogin} className="grid grid-cols-2 gap-3">
-                <SubmitButton name="account" value="admin" className={btn.white}>
-                  Si administrator
-                </SubmitButton>
-                <SubmitButton name="account" value="banor" className={btn.white}>
-                  Si banor
-                </SubmitButton>
-              </form>
-            </div>
-          ) : null}
+          <Suspense fallback={null}>
+            <DemoButtons />
+          </Suspense>
         </div>
       </main>
     </div>
+  );
+}
+
+// DEMO_MODE lexohet në kohën e kërkesës, jo gjatë build-it, që ndryshimi i tij në server të vlejë menjëherë.
+async function DemoButtons() {
+  await connection();
+  if (!isDemoMode()) return null;
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-center text-sm font-semibold text-muted">Ose provo demon pa llogari</p>
+      <form action={demoLogin} className="grid grid-cols-2 gap-3">
+        <SubmitButton name="account" value="admin" className={btn.white}>
+          Si administrator
+        </SubmitButton>
+        <SubmitButton name="account" value="banor" className={btn.white}>
+          Si banor
+        </SubmitButton>
+      </form>
+    </div>
+  );
+}
+
+async function DemoNote() {
+  await connection();
+  return isDemoMode() ? (
+    <span className="text-sm text-white/70">Projekt demonstrues · të dhënat janë fiktive</span>
+  ) : (
+    <span />
   );
 }
 

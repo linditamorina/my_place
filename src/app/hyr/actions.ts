@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createSession, destroySession } from "@/lib/auth";
 import { isKey } from "@/lib/constants";
 import { db } from "@/lib/db";
+import { isDemoMode } from "@/lib/env";
 import { verifyPassword } from "@/lib/password";
 
 export type LoginState = { error?: string; email?: string };
@@ -22,7 +23,7 @@ export async function login(_: LoginState, formData: FormData): Promise<LoginSta
   redirect(user.role === "ADMIN" ? "/admin" : "/banori");
 }
 
-// Hyrja me një klik ekziston vetëm kur DEMO_MODE=1 (për prezantim të projektit).
+// Hyrja me një klik ekziston vetëm kur DEMO_MODE="1" (për prezantim të projektit). Parazgjedhja është e fikur.
 const DEMO_ACCOUNTS = {
   admin: "admin@myplace.test",
   banor: "drita@myplace.test",
@@ -30,7 +31,8 @@ const DEMO_ACCOUNTS = {
 
 export async function demoLogin(formData: FormData): Promise<void> {
   const account = formData.get("account");
-  if (process.env.DEMO_MODE !== "1" || !isKey(DEMO_ACCOUNTS, account)) redirect("/hyr");
+  // Kontrolli bëhet edhe këtu, në server: fshehja e butonave nuk mjafton.
+  if (!isDemoMode() || !isKey(DEMO_ACCOUNTS, account)) redirect("/hyr");
   const user = await db.user.findUnique({ where: { email: DEMO_ACCOUNTS[account] } });
   if (!user) redirect("/hyr");
   await createSession(user.id);

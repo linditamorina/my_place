@@ -65,7 +65,7 @@ Hap [http://localhost:3000](http://localhost:3000).
 
 ### Llogaritë demo
 
-Kur `DEMO_MODE="1"`, faqja e hyrjes ka butonat **Si administrator** dhe **Si banor**. Mund të hysh edhe me email:
+Hyrja me një klik është e fikur si parazgjedhje. Për ta ndezur në kompjuterin tënd, vendos `DEMO_MODE="1"` te `.env`. Pastaj faqja e hyrjes ka butonat **Si administrator** dhe **Si banor**. Mund të hysh edhe me email:
 
 | Roli | Email-i |
 | --- | --- |
@@ -76,6 +76,14 @@ Kur `DEMO_MODE="1"`, faqja e hyrjes ka butonat **Si administrator** dhe **Si ban
 Fjalëkalimi i përbashkët është `myplace-demo`.
 
 `npm run db:seed` i fshin dhe i krijon nga e para të dhënat demo. Datat llogariten nga dita e sotme, kështu demo duket gjithmonë aktuale.
+
+### Konfigurimi dhe siguria
+
+- `.env` nuk shkon kurrë në git: `.gitignore` i bllokon të gjitha skedarët `.env*`. Në repo është vetëm `.env.example`, një shabllon me vlera shembull, pa asnjë sekret.
+- `DEMO_MODE` është `"0"` si parazgjedhje. Edhe kur butonat fshihen, serveri e refuzon hyrjen pa fjalëkalim pa `DEMO_MODE="1"`.
+- Në prodhim (`NODE_ENV=production`), aplikacioni nuk niset pa `DATABASE_URL`. Kështu nuk krijohet në heshtje një databazë bosh.
+- `npm run db:seed` nuk ekzekutohet në prodhim. Seed-i fshin të dhënat dhe krijon llogari me fjalëkalimin publik të demos.
+- Në server, vlerat vendosen te variablat e mjedisit të hostingut, jo në një skedar në repo.
 
 ## Testet
 
