@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# databaza lokale dhe skedarët e ngarkuar
+/prisma/*.db
+/prisma/*.db-journal
+/storage
+!.env.example
+
+# playwright
+/test-results
+/playwright-report
+/blob-report
+
+# konfigurimi lokal i Claude Code
+/.claude

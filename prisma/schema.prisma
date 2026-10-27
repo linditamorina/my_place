@@ -1,0 +1,250 @@
+// MyPlace — modeli i të dhënave.
+// Shumat ruhen gjithmonë në centë (Int), asnjëherë me presje dhjetore.
+// Statuset dhe llojet ruhen si tekst; vlerat e lejuara janë te src/lib/constants.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Building {
+  id                  String   @id @default(cuid())
+  name                String
+  address             String
+  city                String
+  beneficiary         String
+  iban                String
+  codePrefix          String
+  openingBalanceCents Int      @default(0)
+  nextReceiptNo       Int      @default(1)
+  createdAt           DateTime @default(now())
+
+  units     Unit[]
+  users     User[]
+  invoices  Invoice[]
+  payments  Payment[]
+  funds     Fund[]
+  expenses  Expense[]
+  tickets   Ticket[]
+  notices   Notice[]
+  polls     Poll[]
+  auditLogs AuditLog[]
+}
+
+model Unit {
+  id              String   @id @default(cuid())
+  buildingId      String
+  building        Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  kind            String
+  number          String
+  floor           Int
+  areaM2          Int
+  monthlyFeeCents Int
+  ownerName       String
+
+  residents User[]
+  invoices  Invoice[]
+  payments  Payment[]
+  tickets   Ticket[]
+  notices   Notice[]
+  votes     Vote[]
+
+  @@unique([buildingId, kind, number])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         String
+  isOwner      Boolean  @default(true)
+  buildingId   String
+  building     Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  unitId       String?
+  unit         Unit?    @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  sessions  Session[]
+  tickets   Ticket[]
+  reads     NoticeRead[]
+  votes     Vote[]
+  auditLogs AuditLog[]
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Invoice {
+  id         String   @id @default(cuid())
+  buildingId String
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  unitId     String
+  unit       Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  kind       String
+  period     String
+  title      String
+  dueDate    DateTime
+  totalCents Int
+  createdAt  DateTime @default(now())
+
+  lines    InvoiceLine[]
+  payments Payment[]
+
+  @@index([buildingId, period])
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  amountCents Int
+  fundId      String?
+  fund        Fund?   @relation(fields: [fundId], references: [id], onDelete: SetNull)
+}
+
+model Payment {
+  id           String    @id @default(cuid())
+  buildingId   String
+  building     Building  @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  unitId       String
+  unit         Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  invoiceId    String
+  invoice      Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amountCents  Int
+  method       String
+  status       String
+  proofFile    String?
+  receiptNo    Int?
+  createdAt    DateTime  @default(now())
+  approvedAt   DateTime?
+  approvedById String?
+}
+
+model Fund {
+  id          String   @id @default(cuid())
+  buildingId  String
+  building    Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  name        String
+  targetCents Int
+
+  lines    InvoiceLine[]
+  expenses Expense[]
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  buildingId  String
+  building    Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  category    String
+  description String
+  amountCents Int
+  date        DateTime
+  receiptFile String?
+  fundId      String?
+  fund        Fund?    @relation(fields: [fundId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  buildingId  String
+  building    Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  unitId      String?
+  unit        Unit?    @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  reporterId  String?
+  reporter    User?    @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  category    String
+  description String
+  photoFile   String?
+  status      String
+  adminNote   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notice {
+  id         String   @id @default(cuid())
+  buildingId String
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  unitId     String?
+  unit       Unit?    @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  title      String
+  body       String
+  important  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  reads NoticeRead[]
+}
+
+model NoticeRead {
+  noticeId String
+  notice   Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt   DateTime @default(now())
+
+  @@id([noticeId, userId])
+}
+
+model Poll {
+  id          String   @id @default(cuid())
+  buildingId  String
+  building    Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  question    String
+  description String
+  closesAt    DateTime
+  ownersOnly  Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  options PollOption[]
+  votes   Vote[]
+}
+
+model PollOption {
+  id       String @id @default(cuid())
+  pollId   String
+  poll     Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  label    String
+  position Int
+
+  votes Vote[]
+}
+
+model Vote {
+  id        String     @id @default(cuid())
+  pollId    String
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId  String
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  unitId    String
+  unit      Unit       @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime   @default(now())
+
+  @@unique([pollId, unitId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  buildingId String
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  createdAt  DateTime @default(now())
+
+  @@index([buildingId, createdAt])
+}
